@@ -2,6 +2,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/admin-guard"
 import { getAllUsers, addCreditsToUser, toggleUserDisabled } from "@/lib/models/user"
 import { createUsageLog } from "@/lib/models/usage-log"
+import { getDb } from "@/lib/mongodb"
+
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
@@ -25,7 +28,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 
-    const { userId, action, amount } = await request.json()
+    const { userId, action, amount, isAdmin, apiLimit } = await request.json()
     const ip = request.headers.get("x-forwarded-for") || "unknown"
 
     if (action === "add_credits") {
@@ -48,6 +51,36 @@ export async function PUT(request: NextRequest) {
       const success = await toggleUserDisabled(userId, false)
       if (success) {
         await createUsageLog(admin.userId, "ADMIN_ENABLE_USER", `Enabled user ${userId}`, ip)
+      }
+      return NextResponse.json({ success })
+    }
+
+    if (action === "toggleAdmin") {
+      const db = await getDb()
+      const { ObjectId } = await import("mongodb")
+      await db.collection("users").updateOne(
+        { _id: new ObjectId(userId) },
+        { $set: { isAdmin: isAdmin } }
+      )
+      await createUsageLog(admin.userId, "ADMIN_TOGGLE_ROLE", `Changed admin status for user ${userId} to ${isAdmin}`, ip)
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === "setApiLimit") {
+      const { setUserApiLimit } = await import("@/lib/models/api-limits")
+      const success = await setUserApiLimit(userId, apiLimit)
+      if (success) {
+        await createUsageLog(admin.userId, "ADMIN_SET_API_LIMIT", `Set API limit for user ${userId} to ${apiLimit}`, ip)
+      }
+      return NextResponse.json({ success })
+    }
+
+    if (action === "setMaxApiKeys") {
+      const { setUserKeyLimit } = await import("@/lib/models/api-limits")
+      const { maxApiKeys } = await request.json()
+      const success = await setUserKeyLimit(userId, maxApiKeys)
+      if (success) {
+        await createUsageLog(admin.userId, "ADMIN_SET_KEY_LIMIT", `Set Max API Keys for user ${userId} to ${maxApiKeys}`, ip)
       }
       return NextResponse.json({ success })
     }

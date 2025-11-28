@@ -1,10 +1,22 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card"
 
-const codeExamples = {
-  curl: `curl -X POST https://pdfforge.com/api/v1/pdf/merge \\
+export default function DocsPage() {
+  const [baseUrl, setBaseUrl] = useState("https://pdfforge.com")
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setBaseUrl(window.location.origin)
+    }
+  }, [])
+
+  const codeExamples = {
+    curl: `curl -X POST ${baseUrl}/api/convert \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -12,11 +24,13 @@ const codeExamples = {
       "https://example.com/image1.jpg",
       "https://example.com/image2.png"
     ],
-    "size": "A4",
-    "orientation": "portrait",
-    "fit": "contain"
+    "options": {
+      "pageSize": "a4",
+      "orientation": "portrait",
+      "fitMode": "fit"
+    }
   }'`,
-  javascript: `const response = await fetch('https://pdfforge.com/api/v1/pdf/merge', {
+    javascript: `const response = await fetch('${baseUrl}/api/convert', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer YOUR_API_KEY',
@@ -27,18 +41,20 @@ const codeExamples = {
       'https://example.com/image1.jpg',
       'https://example.com/image2.png'
     ],
-    size: 'A4',
-    orientation: 'portrait',
-    fit: 'contain'
+    options: {
+      pageSize: 'a4',
+      orientation: 'portrait',
+      fitMode: 'fit'
+    }
   }),
 });
 
 const data = await response.json();
-console.log(data.pdfUrl);`,
-  python: `import requests
+console.log(data.url);`,
+    python: `import requests
 
 response = requests.post(
-    'https://pdfforge.com/api/v1/pdf/merge',
+    '${baseUrl}/api/convert',
     headers={
         'Authorization': 'Bearer YOUR_API_KEY',
         'Content-Type': 'application/json',
@@ -48,19 +64,21 @@ response = requests.post(
             'https://example.com/image1.jpg',
             'https://example.com/image2.png'
         ],
-        'size': 'A4',
-        'orientation': 'portrait',
-        'fit': 'contain'
+        'options': {
+            'pageSize': 'a4',
+            'orientation': 'portrait',
+            'fitMode': 'fit'
+        }
     }
 )
 
 data = response.json()
-print(data['pdfUrl'])`,
-  php: `<?php
+print(data['url'])`,
+    php: `<?php
 $ch = curl_init();
 
 curl_setopt_array($ch, [
-    CURLOPT_URL => 'https://pdfforge.com/api/v1/pdf/merge',
+    CURLOPT_URL => '${baseUrl}/api/convert',
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_POST => true,
     CURLOPT_HTTPHEADER => [
@@ -72,35 +90,38 @@ curl_setopt_array($ch, [
             'https://example.com/image1.jpg',
             'https://example.com/image2.png'
         ],
-        'size' => 'A4',
-        'orientation' => 'portrait',
-        'fit' => 'contain'
+        'options' => [
+            'pageSize' => 'a4',
+            'orientation' => 'portrait',
+            'fitMode' => 'fit'
+        ]
     ]),
 ]);
 
 $response = curl_exec($ch);
 $data = json_decode($response, true);
 
-echo $data['pdfUrl'];`,
-  n8n: `// In n8n HTTP Request Node:
+echo $data['url'];`,
+    n8n: `// In n8n HTTP Request Node:
 // 
 // Method: POST
-// URL: https://pdfforge.com/api/v1/pdf/merge
+// URL: ${baseUrl}/api/convert
 // 
 // Authentication: Header Auth
 // Header Name: Authorization
 // Header Value: Bearer YOUR_API_KEY
 //
 // Body Parameters:
-{
-  "images": ["{{ $json.imageUrl1 }}", "{{ $json.imageUrl2 }}"],
-  "size": "A4",
-  "orientation": "portrait",
-  "fit": "contain"
-}`,
-}
+// {
+//   "images": ["{{ $json.imageUrl1 }}", "{{ $json.imageUrl2 }}"],
+//   "options": {
+//     "pageSize": "a4",
+//     "orientation": "portrait",
+//     "fitMode": "fit"
+//   }
+// }`,
+  }
 
-export default function DocsPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -117,6 +138,7 @@ export default function DocsPage() {
             <h2 className="text-2xl font-bold text-foreground">Authentication</h2>
             <p className="mt-2 text-muted-foreground">
               All API requests require authentication using your API key in the Authorization header.
+              You can generate an API key in your dashboard under the "API Keys" section.
             </p>
             <Card className="mt-4">
               <CardContent className="pt-6">
@@ -134,85 +156,35 @@ export default function DocsPage() {
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <span className="rounded bg-primary px-2 py-1 text-xs font-bold text-primary-foreground">POST</span>
-                  <code className="text-lg">/api/v1/pdf/merge</code>
+                  <code className="text-lg">/api/convert</code>
                 </div>
-                <CardDescription>Merge multiple images into a single PDF</CardDescription>
+                <CardDescription>Convert images to a single PDF</CardDescription>
               </CardHeader>
               <CardContent>
                 <h4 className="mb-2 font-semibold text-foreground">Request Body</h4>
                 <pre className="mb-6 overflow-x-auto rounded-lg bg-secondary p-4">
                   <code className="text-sm text-foreground">{`{
-  "images": ["string"],     // Array of image URLs (required)
-  "size": "A4",             // "A4" | "letter" | "square" (default: "A4")
-  "orientation": "portrait", // "portrait" | "landscape" (default: "portrait")
-  "fit": "contain"          // "contain" | "cover" (default: "contain")
+  "images": ["string"],     // Array of image URLs or Base64 strings (required)
+  "options": {
+    "filename": "output.pdf", // Optional filename
+    "pageSize": "a4",         // "a4" | "letter" | "legal" | "square" | "2:3" (default: "a4")
+    "orientation": "portrait", // "portrait" | "landscape" (default: "portrait")
+    "fitMode": "fit"          // "fit" | "fill" (default: "fit")
+  }
 }`}</code>
                 </pre>
 
                 <h4 className="mb-2 font-semibold text-foreground">Response</h4>
                 <pre className="overflow-x-auto rounded-lg bg-secondary p-4">
                   <code className="text-sm text-foreground">{`{
-  "status": "success",
-  "pdfId": "abc123",
-  "pdfUrl": "https://pdfforge.com/api/v1/pdf/download/abc123",
-  "pages": 5,
-  "fileSize": "1.2 MB"
+  "success": true,
+  "url": "https://res.cloudinary.com/...", // Direct download URL
+  "fileId": "abc123xyz",
+  "creditsDeducted": 1,
+  "remainingCredits": 99
 }`}</code>
                 </pre>
               </CardContent>
-            </Card>
-
-            <Card className="mt-6">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <span className="rounded bg-secondary px-2 py-1 text-xs font-bold text-secondary-foreground">
-                    GET
-                  </span>
-                  <code className="text-lg">/api/v1/pdf/list</code>
-                </div>
-                <CardDescription>List all PDFs generated with your API key</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <h4 className="mb-2 font-semibold text-foreground">Response</h4>
-                <pre className="overflow-x-auto rounded-lg bg-secondary p-4">
-                  <code className="text-sm text-foreground">{`{
-  "status": "success",
-  "pdfs": [
-    {
-      "pdfId": "abc123",
-      "filename": "document.pdf",
-      "pages": 5,
-      "fileSize": "1.2 MB",
-      "createdAt": "2024-01-15T10:30:00Z"
-    }
-  ]
-}`}</code>
-                </pre>
-              </CardContent>
-            </Card>
-
-            <Card className="mt-6">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <span className="rounded bg-secondary px-2 py-1 text-xs font-bold text-secondary-foreground">
-                    GET
-                  </span>
-                  <code className="text-lg">/api/v1/pdf/info/:pdfId</code>
-                </div>
-                <CardDescription>Get metadata for a specific PDF</CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="mt-6">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <span className="rounded bg-secondary px-2 py-1 text-xs font-bold text-secondary-foreground">
-                    GET
-                  </span>
-                  <code className="text-lg">/api/v1/pdf/download/:pdfId</code>
-                </div>
-                <CardDescription>Download a PDF file (returns raw PDF stream)</CardDescription>
-              </CardHeader>
             </Card>
           </section>
 

@@ -33,6 +33,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Key name is required" }, { status: 400 })
     }
 
+    // Check API Key Limit
+    const { canCreateApiKey } = await import("@/lib/models/api-limits")
+    const allowed = await canCreateApiKey(session.userId)
+
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "API Key limit reached. Please upgrade your plan or contact support." },
+        { status: 403 }
+      )
+    }
+
     const key = await createApiKey(session.userId, name)
 
     const ip = request.headers.get("x-forwarded-for") || "unknown"

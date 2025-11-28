@@ -7,10 +7,12 @@ export interface UserDocument {
   email: string
   password: string
   name: string
-  plan: "free" | "pro" | "business"
+  plan: string
   credits: number
   isAdmin: boolean
   isDisabled: boolean
+  apiLimit?: number | null
+  maxApiKeys?: number | null
   createdAt: Date
   updatedAt: Date
 }
@@ -19,9 +21,12 @@ export interface SafeUser {
   id: string
   email: string
   name: string
-  plan: "free" | "pro" | "business"
+  plan: string
   credits: number
   isAdmin: boolean
+  isDisabled?: boolean
+  apiLimit?: number | null
+  maxApiKeys?: number | null
   createdAt: string
 }
 
@@ -56,6 +61,7 @@ export async function createUser(email: string, password: string, name: string):
     plan: "free",
     credits: 10,
     isAdmin,
+    isDisabled: false,
     createdAt: new Date().toISOString(),
   }
 }
@@ -79,6 +85,9 @@ export async function verifyUser(email: string, password: string): Promise<SafeU
     plan: user.plan,
     credits: user.credits,
     isAdmin: user.isAdmin,
+    isDisabled: user.isDisabled,
+    apiLimit: user.apiLimit,
+    maxApiKeys: user.maxApiKeys,
     createdAt: user.createdAt.toISOString(),
   }
 }
@@ -98,6 +107,9 @@ export async function getUserById(id: string): Promise<SafeUser | null> {
       plan: user.plan,
       credits: user.credits,
       isAdmin: user.isAdmin,
+      isDisabled: user.isDisabled,
+      apiLimit: user.apiLimit,
+      maxApiKeys: user.maxApiKeys,
       createdAt: user.createdAt.toISOString(),
     }
   } catch {
@@ -113,15 +125,13 @@ export async function updateUserCredits(id: string, credits: number): Promise<bo
   return result.modifiedCount > 0
 }
 
-export async function updateUserPlan(id: string, plan: "free" | "pro" | "business"): Promise<boolean> {
+export async function updateUserPlan(id: string, plan: string): Promise<boolean> {
   const db = await getDb()
   const users = db.collection<UserDocument>("users")
 
-  const planCredits = { free: 10, pro: 100, business: 1000 }
-
   const result = await users.updateOne(
     { _id: new ObjectId(id) },
-    { $set: { plan, credits: planCredits[plan], updatedAt: new Date() } },
+    { $set: { plan, updatedAt: new Date() } },
   )
   return result.modifiedCount > 0
 }
@@ -138,6 +148,9 @@ export async function getAllUsers(): Promise<SafeUser[]> {
     plan: user.plan,
     credits: user.credits,
     isAdmin: user.isAdmin,
+    isDisabled: user.isDisabled,
+    apiLimit: user.apiLimit,
+    maxApiKeys: user.maxApiKeys,
     createdAt: user.createdAt.toISOString(),
   }))
 }

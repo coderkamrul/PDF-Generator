@@ -20,7 +20,7 @@ export default function AdminLayout({
     if (!isLoading) {
       if (!user) {
         router.push("/login")
-      } else if (user.email !== "admin@pdfforge.com") {
+      } else if (!user.isAdmin) {
         router.push("/dashboard")
       }
     }
@@ -34,7 +34,7 @@ export default function AdminLayout({
     )
   }
 
-  if (!user || user.email !== "admin@pdfforge.com") {
+  if (!user || !user.isAdmin) {
     return null
   }
 

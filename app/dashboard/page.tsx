@@ -26,6 +26,13 @@ export default function DashboardPage() {
 
   const { data: filesData, isLoading: filesLoading } = useSWR<{ files: PDFFile[] }>(user ? "/api/files" : null, fetcher)
 
+  const { data: usageData, isLoading: usageLoading } = useSWR<{
+    apiUsage: number
+    apiLimit: number | null
+    keyCount: number
+    keyLimit: number
+  }>("/api/user/usage", fetcher)
+
   const userFiles = filesData?.files || []
   const recentFiles = userFiles.slice(0, 5)
 
@@ -33,11 +40,17 @@ export default function DashboardPage() {
     { label: "PDFs Created", value: filesLoading ? "..." : userFiles.length, icon: FileText },
     { label: "Credits Remaining", value: user?.credits || 0, icon: Zap },
     {
-      label: "Images Processed",
-      value: filesLoading ? "..." : userFiles.reduce((acc, f) => acc + f.pages, 0),
-      icon: ImageIcon,
+      label: "API Usage (Today)",
+      value: usageLoading
+        ? "..."
+        : `${usageData?.apiUsage} / ${usageData?.apiLimit === null ? "∞" : usageData?.apiLimit}`,
+      icon: Key,
     },
-    { label: "API Calls", value: filesLoading ? "..." : userFiles.filter((f) => f.apiGenerated).length, icon: Key },
+    {
+      label: "API Keys",
+      value: usageLoading ? "..." : `${usageData?.keyCount} / ${usageData?.keyLimit}`,
+      icon: Key,
+    },
   ]
 
   return (

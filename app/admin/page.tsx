@@ -63,11 +63,6 @@ interface UsageLog {
 export default function AdminPage() {
   const { data: statsData, isLoading: statsLoading } = useSWR("/api/admin/stats", fetcher)
   const {
-    data: usersData,
-    isLoading: usersLoading,
-    mutate: mutateUsers,
-  } = useSWR<{ users: User[] }>("/api/admin/users", fetcher)
-  const {
     data: filesData,
     isLoading: filesLoading,
     mutate: mutateFiles,
@@ -75,16 +70,9 @@ export default function AdminPage() {
   const { data: keysData, isLoading: keysLoading } = useSWR<{ keys: ApiKey[] }>("/api/admin/api-keys", fetcher)
   const { data: logsData, isLoading: logsLoading } = useSWR<{ logs: UsageLog[] }>("/api/admin/logs", fetcher)
 
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
-  const [creditsToAdd, setCreditsToAdd] = useState("")
-  const [isAddingCredits, setIsAddingCredits] = useState(false)
   const [deleteFileId, setDeleteFileId] = useState<string | null>(null)
   const [isDeletingFile, setIsDeletingFile] = useState(false)
-  const [disableUserId, setDisableUserId] = useState<string | null>(null)
-  const [isDisabling, setIsDisabling] = useState(false)
 
-  const users = usersData?.users || []
   const files = filesData?.files || []
   const apiKeys = keysData?.keys || []
   const usageLogs = logsData?.logs || []
@@ -95,37 +83,6 @@ export default function AdminPage() {
     { label: "API Keys", value: statsLoading ? "..." : statsData?.totalApiKeys || 0, icon: Key },
     { label: "API Requests", value: statsLoading ? "..." : statsData?.totalUsage || 0, icon: Activity },
   ]
-
-  const filteredUsers = users.filter(
-    (user) =>
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
-
-  const handleAddCredits = async () => {
-    if (!selectedUser || !creditsToAdd) return
-    const amount = Number.parseInt(creditsToAdd)
-    if (isNaN(amount) || amount <= 0) return
-
-    setIsAddingCredits(true)
-    try {
-      const res = await fetch("/api/admin/users", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: selectedUser.id, action: "add_credits", amount }),
-      })
-
-      if (res.ok) {
-        mutateUsers()
-      }
-    } catch (error) {
-      console.error("Add credits error:", error)
-    } finally {
-      setIsAddingCredits(false)
-      setSelectedUser(null)
-      setCreditsToAdd("")
-    }
-  }
 
   const handleDeleteFile = async () => {
     if (!deleteFileId) return
@@ -141,28 +98,6 @@ export default function AdminPage() {
     } finally {
       setIsDeletingFile(false)
       setDeleteFileId(null)
-    }
-  }
-
-  const handleDisableUser = async () => {
-    if (!disableUserId) return
-    setIsDisabling(true)
-
-    try {
-      const res = await fetch("/api/admin/users", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: disableUserId, action: "disable" }),
-      })
-
-      if (res.ok) {
-        mutateUsers()
-      }
-    } catch (error) {
-      console.error("Disable user error:", error)
-    } finally {
-      setIsDisabling(false)
-      setDisableUserId(null)
     }
   }
 
@@ -184,95 +119,12 @@ export default function AdminPage() {
         ))}
       </div>
 
-      <Tabs defaultValue="users" className="space-y-6">
+      <Tabs defaultValue="files" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="files">Files</TabsTrigger>
           <TabsTrigger value="api">API Keys</TabsTrigger>
           <TabsTrigger value="logs">Usage Logs</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="users">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Users</CardTitle>
-                  <CardDescription>Manage all registered users</CardDescription>
-                </div>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Search users..."
-                    className="w-64 pl-9"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {usersLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : filteredUsers.length === 0 ? (
-                <p className="py-8 text-center text-muted-foreground">No users found</p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Plan</TableHead>
-                      <TableHead>Credits</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Joined</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          <span className="rounded-full bg-primary/10 px-2 py-1 text-xs capitalize text-primary">
-                            {user.plan}
-                          </span>
-                        </TableCell>
-                        <TableCell>{user.credits}</TableCell>
-                        <TableCell>
-                          {user.isAdmin ? (
-                            <span className="inline-flex items-center gap-1 text-xs text-primary">
-                              <CheckCircle className="h-3 w-3" /> Admin
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">User</span>
-                          )}
-                        </TableCell>
-                        <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => setSelectedUser(user)}>
-                              <Plus className="mr-1 h-3 w-3" />
-                              Credits
-                            </Button>
-                            {!user.isAdmin && (
-                              <Button variant="ghost" size="icon" onClick={() => setDisableUserId(user.id)}>
-                                <Ban className="h-4 w-4 text-destructive" />
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="files">
           <Card>
@@ -418,36 +270,6 @@ export default function AdminPage() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Credits</DialogTitle>
-            <DialogDescription>Add credits to {selectedUser?.name}&apos;s account</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Current balance: {selectedUser?.credits} credits</p>
-              <Input
-                type="number"
-                placeholder="Amount to add"
-                value={creditsToAdd}
-                onChange={(e) => setCreditsToAdd(e.target.value)}
-                min="1"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setSelectedUser(null)} disabled={isAddingCredits}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddCredits} disabled={isAddingCredits}>
-              {isAddingCredits ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Add Credits
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={!!deleteFileId} onOpenChange={() => setDeleteFileId(null)}>
         <DialogContent>
           <DialogHeader>
@@ -463,26 +285,6 @@ export default function AdminPage() {
             <Button variant="destructive" onClick={handleDeleteFile} disabled={isDeletingFile}>
               {isDeletingFile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!disableUserId} onOpenChange={() => setDisableUserId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Disable User</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to disable this user account? They will no longer be able to log in.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDisableUserId(null)} disabled={isDisabling}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDisableUser} disabled={isDisabling}>
-              {isDisabling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Disable Account
             </Button>
           </DialogFooter>
         </DialogContent>

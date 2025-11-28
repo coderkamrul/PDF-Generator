@@ -16,6 +16,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Shield,
+  Users,
+  LayoutList,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
@@ -73,19 +75,74 @@ export function DashboardSidebar() {
           )
         })}
 
-        {user?.email === "admin@pdfforge.com" && (
-          <Link
-            href="/admin"
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-              pathname.startsWith("/admin")
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+        {user?.isAdmin && (
+          <div className="mt-6">
+            {!collapsed && (
+              <h4 className="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50">
+                Admin
+              </h4>
             )}
-          >
-            <Shield className="h-5 w-5 shrink-0" />
-            {!collapsed && <span>Admin</span>}
-          </Link>
+            <Link
+              href="/admin"
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                pathname === "/admin"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+              )}
+            >
+              <Shield className="h-5 w-5 shrink-0" />
+              {!collapsed && <span>Overview</span>}
+            </Link>
+            <Link
+              href="/admin/users"
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                pathname === "/admin/users"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+              )}
+            >
+              <Users className="h-5 w-5 shrink-0" />
+              {!collapsed && <span>Users</span>}
+            </Link>
+            <Link
+              href="/admin/transactions"
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                pathname === "/admin/transactions"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+              )}
+            >
+              <CreditCard className="h-5 w-5 shrink-0" />
+              {!collapsed && <span>Transactions</span>}
+            </Link>
+            <Link
+              href="/admin/plans"
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                pathname === "/admin/plans"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+              )}
+            >
+              <LayoutList className="h-5 w-5 shrink-0" />
+              {!collapsed && <span>Plans</span>}
+            </Link>
+            <Link
+              href="/admin/settings"
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                pathname === "/admin/settings"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+              )}
+            >
+              <Settings className="h-5 w-5 shrink-0" />
+              {!collapsed && <span>Settings</span>}
+            </Link>
+          </div>
         )}
       </nav>
 

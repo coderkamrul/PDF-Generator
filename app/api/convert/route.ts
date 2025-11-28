@@ -197,6 +197,26 @@ export async function POST(request: NextRequest) {
     if (user.credits <= 0)
       return NextResponse.json({ error: "Insufficient credits" }, { status: 403 })
 
+    // Check API limits for API requests
+    if (isApiRequest) {
+      const { checkApiLimit, incrementApiUsage } = await import("@/lib/models/api-limits")
+      const limitCheck = await checkApiLimit(userId)
+
+      if (!limitCheck.allowed) {
+        return NextResponse.json(
+          {
+            error: "API limit exceeded",
+            message: "You have reached your daily API request limit. Please upgrade your plan or wait until tomorrow.",
+            limit: limitCheck.remaining
+          },
+          { status: 429 }
+        )
+      }
+
+      // Increment usage counter
+      await incrementApiUsage(userId, apiKeyId!)
+    }
+
     const body = await request.json()
 
     // images can be mix of base64 + URLs
